@@ -22,10 +22,12 @@ import java.io.IOException;
 public class SunbirdSupport extends CordovaPlugin {
 
     private CallbackContext callbackContext;
+    private CordovaInterface cordova;
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
+        this.cordova = cordova;
     }
 
 
@@ -39,7 +41,8 @@ public class SunbirdSupport extends CordovaPlugin {
                 final String packageName = this.cordova.getActivity().getPackageName();
                 PackageInfo packageInfo = this.cordova.getActivity().getPackageManager().getPackageInfo(packageName, 0);
                 final String versionName = packageInfo.versionName;
-                filePath = SunbirdFileHandler.makeEntryInSunbirdSupportFile(packageName, versionName);
+                String appName  = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
+                filePath = SunbirdFileHandler.makeEntryInSunbirdSupportFile(packageName, versionName, appName);
                 callbackContext.success(gson.toJson(filePath));
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
@@ -50,6 +53,11 @@ public class SunbirdSupport extends CordovaPlugin {
             }
         }
         return true;
+    }
+
+    private int getIdOfResource(CordovaInterface cordova, String name, String resourceType) {
+        return cordova.getActivity().getResources().getIdentifier(name, resourceType,
+                cordova.getActivity().getApplicationInfo().packageName);
     }
 }
 

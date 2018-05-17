@@ -17,13 +17,13 @@ import java.util.Scanner;
 
 public class SunbirdFileHandler {
 
-    private static final String SUNBIRD_SUPPORT_DIRECTORY = "SunbirdSupport";
-    private static final String SUNBIRD_SUPPORT_FILE = "sunbird_support.txt";
+    private static final String SUPPORT_FILE = "_support.txt";
+    private static final String SUPPORT_DIRECTORY = "Support";
     private static final String SEPERATOR = "~";
 
-    public static String makeEntryInSunbirdSupportFile(String packageName, String versionName) throws IOException {
-        File genieSupportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(), SUNBIRD_SUPPORT_DIRECTORY);
-        String filePath = genieSupportDirectory + "/" + SUNBIRD_SUPPORT_FILE;
+    public static String makeEntryInSunbirdSupportFile(String packageName, String versionName, String appName) throws IOException {
+        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(), appName + SUPPORT_DIRECTORY);
+        String filePath = supportDirectory + "/" + appName + SUPPORT_FILE;
 
         //for the first time when file does not exists
         if (!SunbirdFileHandler.checkIfFileExists(filePath)) {
