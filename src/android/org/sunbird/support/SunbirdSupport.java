@@ -50,7 +50,7 @@ public class SunbirdSupport extends CordovaPlugin {
                 callbackContext.error(gson.toJson(filePath));
             }
         }
-        if (args.get(0).equals("makeEntryInSunbirdConfiguration")) {
+        if (args.get(0).equals("shareSunbirdConfigurations")) {
             this.callbackContext = callbackContext;
             String filePath = null;
             final Gson gson = new GsonBuilder().create();
@@ -59,7 +59,7 @@ public class SunbirdSupport extends CordovaPlugin {
                 PackageInfo packageInfo = this.cordova.getActivity().getPackageManager().getPackageInfo(packageName, 0);
                 final String versionName = packageInfo.versionName;
                 String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
-                filePath = SunbirdFileHandler.makeEntryInSunbirdConfiguration(packageName, versionName, appName,
+                filePath = SunbirdFileHandler.shareSunbirdConfigurations(packageName, versionName, appName,
                         cordova.getContext());
                 callbackContext.success(gson.toJson(filePath));
             } catch (PackageManager.NameNotFoundException e) {
@@ -70,10 +70,10 @@ public class SunbirdSupport extends CordovaPlugin {
                 callbackContext.error(gson.toJson(filePath));
             }
         }
-        if (args.get(0).equals("removeCertainFile")) {
+        if (args.get(0).equals("removeFile")) {
             this.callbackContext = callbackContext;
             String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
-            SunbirdFileHandler.removeCertainFile(appName);
+            SunbirdFileHandler.removeFile(appName);
         }
         return true;
     }

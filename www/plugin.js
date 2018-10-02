@@ -6,11 +6,11 @@ var supportfile = {
   makeEntryInSunbirdSupportFile: function (success, error) {
     exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["makeEntryInSunbirdSupportFile"]);
   },
-  makeEntryInSunbirdConfiguration: function (success, error) {
-    exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["makeEntryInSunbirdConfiguration"]);
+  shareSunbirdConfigurations: function (success, error) {
+    exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["shareSunbirdConfigurations"]);
   },
-  removeCertainFile: function (success, error) {
-    exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["removeCertainFile"]);
+  removeFile: function (success, error) {
+    exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["removeFile"]);
   },
 };
 
