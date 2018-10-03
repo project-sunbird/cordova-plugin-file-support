@@ -72,11 +72,13 @@ public class SunbirdFileHandler {
             Context context) throws IOException {
         File sunbirdSupportDirectory = SunbirdFileHandler
                 .getRequiredDirectory(Environment.getExternalStorageDirectory(), appName + SUPPORT_DIRECTORY);
-        String filePath = sunbirdSupportDirectory + "/ " + appName + CONFIG_FILE;
+        String filePath = sunbirdSupportDirectory + "/" + appName + CONFIG_FILE;
+
         SunbirdFileHandler.createFileInTheDirectory(filePath);
         String firstEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
         String sharedData = fetchDeviceData(context, appName) + firstEntry;
         SunbirdFileHandler.saveToFile(filePath, sharedData);
+
         return filePath;
     }
 
