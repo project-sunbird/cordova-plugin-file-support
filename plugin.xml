@@ -23,6 +23,7 @@
       </config-file>
 
       <source-file src="src/android/org/sunbird/support/SunbirdFileHandler.java" target-dir="src/org/sunbird/support" />
+      <source-file src="src/android/org/sunbird/support/DeviceSpec.java" target-dir="src/org/sunbird/support" />
       <source-file src="src/android/org/sunbird/support/SunbirdSupport.java" target-dir="src/org/sunbird/support" />
 
     </platform>

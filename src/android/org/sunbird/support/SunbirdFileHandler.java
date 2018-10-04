@@ -1,6 +1,10 @@
 package org.sunbird.support;
 
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Environment;
+import android.provider.Settings;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -11,6 +15,9 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -18,14 +25,16 @@ import java.util.Scanner;
 public class SunbirdFileHandler {
 
     private static final String SUPPORT_FILE = "_support.txt";
+    private static final String CONFIG_FILE = "_config.txt";
     private static final String SUPPORT_DIRECTORY = "Support";
     private static final String SEPERATOR = "~";
 
-    public static String makeEntryInSunbirdSupportFile(String packageName, String versionName, String appName) throws IOException {
-        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(), appName + SUPPORT_DIRECTORY);
+    public static String makeEntryInSunbirdSupportFile(String packageName, String versionName, String appName)
+            throws IOException {
+        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(),
+                appName + SUPPORT_DIRECTORY);
         String filePath = supportDirectory + "/" + appName + SUPPORT_FILE;
-
-        //for the first time when file does not exists
+        // for the first time when file does not exists
         if (!SunbirdFileHandler.checkIfFileExists(filePath)) {
             SunbirdFileHandler.createFileInTheDirectory(filePath);
             String firstEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
@@ -36,7 +45,7 @@ public class SunbirdFileHandler {
                 String[] partsOfLastLine = lastLineOfFile.split(SEPERATOR);
 
                 if (versionName.equalsIgnoreCase(partsOfLastLine[0])) {
-                    //just remove the last line from the file and update it their
+                    // just remove the last line from the file and update it their
                     SunbirdFileHandler.removeLastLineFromFile(filePath);
 
                     String previousOpenCount = partsOfLastLine[2];
@@ -45,12 +54,12 @@ public class SunbirdFileHandler {
                     String updateEntry = versionName + SEPERATOR + partsOfLastLine[1] + SEPERATOR + count;
                     SunbirdFileHandler.saveToFile(filePath, updateEntry);
                 } else {
-                    //make a new entry to the file
+                    // make a new entry to the file
                     String newEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
                     SunbirdFileHandler.saveToFile(filePath, newEntry);
                 }
             } else {
-                //make a new entry to the file
+                // make a new entry to the file
                 String newEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
                 SunbirdFileHandler.saveToFile(filePath, newEntry);
             }
@@ -59,10 +68,147 @@ public class SunbirdFileHandler {
         return filePath;
     }
 
+    public static String shareSunbirdConfigurations(String packageName, String versionName, String appName,
+            Context context) throws IOException {
+        File sunbirdSupportDirectory = SunbirdFileHandler
+                .getRequiredDirectory(Environment.getExternalStorageDirectory(), appName + SUPPORT_DIRECTORY);
+        String filePath = sunbirdSupportDirectory + "/" + appName + CONFIG_FILE;
+
+        SunbirdFileHandler.createFileInTheDirectory(filePath);
+        String firstEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
+        String sharedData = fetchDeviceData(context, appName) + firstEntry;
+        SunbirdFileHandler.saveToFile(filePath, sharedData);
+
+        return filePath;
+    }
+
+    private static String getDeviceID(Context context) {
+        String android_id = null;
+        try {
+            android_id = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+            return SunbirdFileHandler.checksum(android_id);
+        } catch (Exception e) {
+            return android_id;
+        }
+    }
+
+    private static String getCrossWalkVersion(Context context) {
+        PackageInfo pInfo = null;
+        try {
+            pInfo = context.getPackageManager().getPackageInfo("org.xwalk.core", 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return pInfo == null ? "na" : pInfo.versionName;
+    }
+
+    private static String checksum(String text) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        MessageDigest md = null;
+        md = MessageDigest.getInstance("SHA-1");
+        md.update(text.getBytes("iso-8859-1"), 0, text.length());
+        byte[] sha1hash = md.digest();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < sha1hash.length; i++) {
+            sb.append(Integer.toString((sha1hash[i] & 0xff) + 0x100, 16).substring(1));
+        }
+        return sb.toString();
+    }
+
+    private static String fetchDeviceData(Context context, String appName) {
+        StringBuilder configString = new StringBuilder();
+
+        // add DeviceId
+        configString.append("did:");
+        configString.append(getDeviceID(context));
+        configString.append("||");
+        // add Device Model
+        configString.append("mdl:");
+        configString.append(DeviceSpec.getDeviceModel());
+        configString.append("||");
+
+        // add device make
+        configString.append("mak:");
+        configString.append(DeviceSpec.getDeviceMaker());
+        configString.append("||");
+
+        // add Crosswalk version
+        configString.append("cwv:");
+        configString.append(getCrossWalkVersion(context));
+        configString.append("||");
+
+        // add Android OS version
+        configString.append("dos:");
+        configString.append(DeviceSpec.getOSVersion());
+        configString.append("||");
+
+        // add Screen Resolution
+        configString.append("res:");
+        configString.append(DeviceSpec.getScreenWidth(context) + "x" + DeviceSpec.getScreenHeight(context));
+        configString.append("||");
+
+        // add Screen DPI
+        configString.append("dpi:");
+        configString.append(DeviceSpec.getDeviceDensityInDpi(context));
+        configString.append("||");
+
+        // add Total disk space
+        configString.append("tsp:");
+        configString.append(DeviceSpec.getTotalExternalMemorySize() + DeviceSpec.getTotalInternalMemorySize());
+        configString.append("||");
+
+        // add free space
+        configString.append("fsp:");
+        configString.append(DeviceSpec.getAvailableExternalMemorySize() + DeviceSpec.getAvailableInternalMemorySize());
+        configString.append("||");
+
+        // add current timestamp
+        configString.append("ts:");
+        configString.append(System.currentTimeMillis());
+        configString.append("||");
+
+        File sunbirdSupportDirectory = SunbirdFileHandler
+                .getRequiredDirectory(Environment.getExternalStorageDirectory(), appName + SUPPORT_DIRECTORY);
+        String fileVersion = sunbirdSupportDirectory + "/" + appName + SUPPORT_FILE;
+        String versionHistory = SunbirdFileHandler.readFile(fileVersion);
+        configString.append("sv: ");
+        configString.append(versionHistory);
+
+        return configString.toString();
+    }
+
+    public static String readFile(String filePath) {
+        String line = null;
+
+        try {
+            FileInputStream fileInputStream = new FileInputStream(new File(filePath));
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            StringBuilder stringBuilder = new StringBuilder();
+
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuilder.append(line + ",");
+            }
+            fileInputStream.close();
+            line = stringBuilder.toString();
+
+            bufferedReader.close();
+        } catch (FileNotFoundException ex) {
+            ex.getMessage();
+        } catch (IOException ex) {
+            ex.getMessage();
+        }
+
+        if (isNullOrEmpty(line)) {
+            line = line.substring(0, line.length() - 1);
+            return line;
+        } else {
+            return line;
+        }
+    }
+
     private static boolean isNullOrEmpty(String string) {
         return string == null || string.length() == 0;
     }
-
 
     public static File getRequiredDirectory(File externalFilesDir, String directoryName) {
         File directory = new File(externalFilesDir.getPath() + "/" + directoryName);
@@ -113,7 +259,6 @@ public class SunbirdFileHandler {
         }
     }
 
-
     /**
      * Save the data to the file
      *
@@ -160,4 +305,12 @@ public class SunbirdFileHandler {
         return lastLine;
     }
 
+    public static void removeFile(String appName) {
+        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(),
+                appName + SUPPORT_DIRECTORY);
+        File file = new File(supportDirectory + "/" + appName + CONFIG_FILE);
+        if (supportDirectory != null && file.exists()) {
+            file.delete();
+        }
+    }
 }
