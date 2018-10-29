@@ -6,6 +6,15 @@ import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.provider.Settings;
 
+import org.ekstep.genieservices.GenieService;
+import org.ekstep.genieservices.commons.bean.Content;
+import org.ekstep.genieservices.commons.bean.ContentFilterCriteria;
+import org.ekstep.genieservices.commons.bean.GenieResponse;
+import org.ekstep.genieservices.commons.bean.Profile;
+import org.ekstep.genieservices.commons.bean.enums.JWTokenType;
+import org.ekstep.genieservices.commons.utils.Base64Util;
+import org.ekstep.genieservices.commons.utils.CryptoUtil;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -31,7 +40,7 @@ public class SunbirdFileHandler {
     private static final String SEPERATOR = "~";
 
     public static String makeEntryInSunbirdSupportFile(String packageName, String versionName, String appName,
-            String appFlavor) throws IOException {
+                                                       String appFlavor) throws IOException {
         File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(),
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
         String filePath = supportDirectory + "/" + appName + DIRECTORY_NAME_SEPERATOR + appFlavor + SUPPORT_FILE;
@@ -70,7 +79,7 @@ public class SunbirdFileHandler {
     }
 
     public static String shareSunbirdConfigurations(String packageName, String versionName, String appName,
-            String appFlavor, Context context) throws IOException {
+                                                    String appFlavor, Context context) throws IOException {
         File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(
                 Environment.getExternalStorageDirectory(),
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
@@ -138,6 +147,16 @@ public class SunbirdFileHandler {
         configString.append(getCrossWalkVersion(context));
         configString.append("||");
 
+        //add total user on device
+        configString.append("uno:");
+        configString.append(getUserCount());
+        configString.append("||");
+
+        // add count of content of device
+        configString.append("cno:");
+        configString.append(getLocalContentCount());
+        configString.append("||");
+
         // add Android OS version
         configString.append("dos:");
         configString.append(DeviceSpec.getOSVersion());
@@ -168,9 +187,19 @@ public class SunbirdFileHandler {
         configString.append(System.currentTimeMillis());
         configString.append("||");
 
+        //calculate checksum before adding pipes
+        String checksum = encodeToBase64Uri(CryptoUtil.generateHMAC(configString.toString().trim(),
+                getDeviceID(context).getBytes(), JWTokenType.HS256.getAlgorithmName()));
+
+        //add HMAC
+        configString.append("csm:");
+        configString.append(checksum);
+        configString.append("||");
+
         File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(
                 Environment.getExternalStorageDirectory(),
-                appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
+                appName + DIRECTORY_NAME_SEPERATOR + appFlavor +
+                        DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
         String fileVersion = sunbirdSupportDirectory + "/" + appName + DIRECTORY_NAME_SEPERATOR + appFlavor
                 + SUPPORT_FILE;
         String versionHistory = SunbirdFileHandler.readFile(fileVersion);
@@ -178,6 +207,32 @@ public class SunbirdFileHandler {
         configString.append(versionHistory);
 
         return configString.toString();
+    }
+
+    public static GenieService getGenieSdkInstance() {
+        return GenieService.getService();
+    }
+
+    private static int getUserCount() {
+        GenieResponse<List<Profile>> response = getGenieSdkInstance().getUserService().getAllUserProfile();
+        List<Profile> mUserList = response.getResult();
+        return mUserList == null ? 0 : mUserList.size();
+    }
+
+    private static int getLocalContentCount() {
+        ContentFilterCriteria.Builder contentFilterCriteria = new ContentFilterCriteria.Builder();
+        contentFilterCriteria.contentTypes(new String[]{"Game", "Story", "Worksheet", "Collection", "TextBook"})
+                .withContentAccess();
+        GenieResponse<List<Content>> genieResponse = getGenieSdkInstance().getContentService()
+                .getAllLocalContent(contentFilterCriteria.build());
+        List<Content> contentList = genieResponse.getResult();
+        return contentList == null ? 0 : contentList.size();
+    }
+
+    private static String encodeToBase64Uri(byte[] data) {
+        //The 11 magic number indicates that it should be
+        // base64Uri and without wrap and with the = at the end
+        return Base64Util.encodeToString(data, 11);
     }
 
     public static String readFile(String filePath) {
