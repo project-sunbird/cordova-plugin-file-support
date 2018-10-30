@@ -34,7 +34,7 @@ import java.util.Scanner;
 public class SunbirdFileHandler {
 
     private static final String SUPPORT_FILE = "_support.txt";
-    private static final String CONFIG_FILE = "_config.txt";
+    private static final String CONFIG_FILE = ".txt";
     private static final String SUPPORT_DIRECTORY = "support";
     private static final String DIRECTORY_NAME_SEPERATOR = "-";
     private static final String SEPERATOR = "~";
@@ -83,7 +83,7 @@ public class SunbirdFileHandler {
         File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(
                 Environment.getExternalStorageDirectory(),
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
-        String filePath = sunbirdSupportDirectory + "/" + appName + DIRECTORY_NAME_SEPERATOR + appFlavor + CONFIG_FILE;
+        String filePath = sunbirdSupportDirectory + "/" + "Details_" + getDeviceID(context) + "_" + System.currentTimeMillis() + CONFIG_FILE;
 
         SunbirdFileHandler.createFileInTheDirectory(filePath);
         String firstEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
@@ -364,12 +364,13 @@ public class SunbirdFileHandler {
         return lastLine;
     }
 
-    public static void removeFile(String appName, String appFlavor) {
+    protected static void removeFile(String appName, String appFlavor) {
         File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(),
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
-        File file = new File(supportDirectory + "/" + appName + DIRECTORY_NAME_SEPERATOR + appFlavor + CONFIG_FILE);
-        if (supportDirectory != null && file.exists()) {
-            file.delete();
+        for (File fileToDelete : supportDirectory.listFiles()) {
+            if (fileToDelete.getName().startsWith("Details_")) {
+                fileToDelete.delete();
+            }
         }
     }
 }
