@@ -174,12 +174,12 @@ public class SunbirdFileHandler {
 
         // add Total disk space
         configString.append("tsp:");
-        configString.append(DeviceSpec.getTotalExternalMemorySize() + DeviceSpec.getTotalInternalMemorySize());
+        configString.append(DeviceSpec.getTotalExternalMemorySize(context) + DeviceSpec.getTotalInternalMemorySize());
         configString.append("||");
 
         // add free space
         configString.append("fsp:");
-        configString.append(DeviceSpec.getAvailableExternalMemorySize() + DeviceSpec.getAvailableInternalMemorySize());
+        configString.append(DeviceSpec.getAvailableExternalMemorySize(context) + DeviceSpec.getAvailableInternalMemorySize());
         configString.append("||");
 
         // add current timestamp

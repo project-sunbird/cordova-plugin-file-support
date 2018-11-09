@@ -19,6 +19,7 @@ import java.io.IOException;
 
 /**
  * Created on 4/4/18. shriharsh
+ * Edited by Subranil on 31/10/18.
  */
 public class SunbirdSupport extends CordovaPlugin {
 

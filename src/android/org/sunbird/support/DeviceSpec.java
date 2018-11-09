@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.provider.Settings;
+import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
@@ -25,6 +26,7 @@ import java.util.List;
 
 /**
  * Created by swayangjit on 25/5/17.
+ * Edited by Subranil on 31/10/18.
  */
 
 public class DeviceSpec {
@@ -116,8 +118,13 @@ public class DeviceSpec {
         return androidId;
     }
 
-    public static boolean hasExternalSDCard() {
-        return Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
+    public static boolean hasExternalSDCard(Context context) {
+        File[] storages = ContextCompat.getExternalFilesDirs(context, null);
+        if (storages.length > 1 && storages[0] != null && storages[1] != null) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static long getTotalRAM(Context context) {
@@ -144,13 +151,10 @@ public class DeviceSpec {
         File path = Environment.getDataDirectory();
         StatFs stat = new StatFs(path.getPath());
         long blockSize, availableBlocks;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            blockSize = stat.getBlockSizeLong();
-            availableBlocks = stat.getAvailableBlocksLong();
-        } else {
-            blockSize = stat.getBlockSize();
-            availableBlocks = stat.getAvailableBlocks();
-        }
+
+        blockSize = stat.getBlockSizeLong();
+        availableBlocks = stat.getAvailableBlocksLong();
+
         return availableBlocks * blockSize;
     }
 
@@ -159,50 +163,39 @@ public class DeviceSpec {
         StatFs stat = new StatFs(path.getPath());
         long blockSize;
         long totalBlocks;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            blockSize = stat.getBlockSizeLong();
-            totalBlocks = stat.getBlockCountLong();
-        } else {
-            blockSize = stat.getBlockSize();
-            totalBlocks = stat.getBlockCount();
-        }
+
+        blockSize = stat.getBlockSizeLong();
+        totalBlocks = stat.getBlockCountLong();
+
         return totalBlocks * blockSize;
     }
 
-    public static long getAvailableExternalMemorySize() {
-        if (hasExternalSDCard()) {
+    public static long getAvailableExternalMemorySize(Context context) {
+        if (hasExternalSDCard(context)) {
             File path = Environment.getExternalStorageDirectory();
             StatFs stat = new StatFs(path.getPath());
             long blockSize;
             long availableBlocks;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                blockSize = stat.getBlockSizeLong();
-                availableBlocks = stat.getAvailableBlocksLong();
-            } else {
-                blockSize = stat.getBlockSize();
-                availableBlocks = stat.getAvailableBlocks();
-            }
+            blockSize = stat.getBlockSizeLong();
+            availableBlocks = stat.getAvailableBlocksLong();
+
             return availableBlocks * blockSize;
-        }
-        return 0;
+        } else
+            return 0;
     }
 
-    public static long getTotalExternalMemorySize() {
-        if (hasExternalSDCard()) {
+    public static long getTotalExternalMemorySize(Context context) {
+        if (hasExternalSDCard(context)) {
             File path = Environment.getExternalStorageDirectory();
             StatFs stat = new StatFs(path.getPath());
             long blockSize;
             long totalBlocks;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                blockSize = stat.getBlockSizeLong();
-                totalBlocks = stat.getBlockCountLong();
-            } else {
-                blockSize = stat.getBlockSize();
-                totalBlocks = stat.getBlockCount();
-            }
+            blockSize = stat.getBlockSizeLong();
+            totalBlocks = stat.getBlockCountLong();
+
             return totalBlocks * blockSize;
-        }
-        return 0;
+        } else
+            return 0;
     }
 
     public static int getScreenHeight(Context context) {
@@ -327,6 +320,5 @@ public class DeviceSpec {
 
         return sb.toString().replace(System.getProperty("line.separator"), " ").replace("Processor	:", "");
     }
-
-
+    
 }
