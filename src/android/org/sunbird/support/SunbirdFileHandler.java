@@ -6,15 +6,6 @@ import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.provider.Settings;
 
-import org.ekstep.genieservices.GenieService;
-import org.ekstep.genieservices.commons.bean.Content;
-import org.ekstep.genieservices.commons.bean.ContentFilterCriteria;
-import org.ekstep.genieservices.commons.bean.GenieResponse;
-import org.ekstep.genieservices.commons.bean.Profile;
-import org.ekstep.genieservices.commons.bean.enums.JWTokenType;
-import org.ekstep.genieservices.commons.utils.Base64Util;
-import org.ekstep.genieservices.commons.utils.CryptoUtil;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -79,7 +70,7 @@ public class SunbirdFileHandler {
     }
 
     public static String shareSunbirdConfigurations(String packageName, String versionName, String appName,
-                                                    String appFlavor, Context context) throws IOException {
+                                                    String appFlavor, Context context, String getUserCount, String getLocalContentCount) throws IOException {
         File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(
                 Environment.getExternalStorageDirectory(),
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
@@ -87,7 +78,7 @@ public class SunbirdFileHandler {
 
         SunbirdFileHandler.createFileInTheDirectory(filePath);
         String firstEntry = versionName + SEPERATOR + System.currentTimeMillis() + SEPERATOR + "1";
-        String sharedData = fetchDeviceData(context, appName, appFlavor) + firstEntry;
+        String sharedData = fetchDeviceData(context, appName, appFlavor, getUserCount , getLocalContentCount) + firstEntry;
         SunbirdFileHandler.saveToFile(filePath, sharedData);
 
         return filePath;
@@ -125,7 +116,7 @@ public class SunbirdFileHandler {
         return sb.toString();
     }
 
-    private static String fetchDeviceData(Context context, String appName, String appFlavor) {
+    private static String fetchDeviceData(Context context, String appName, String appFlavor, String getUserCount, String getLocalContentCount) {
         StringBuilder configString = new StringBuilder();
 
         // add DeviceId
@@ -149,12 +140,12 @@ public class SunbirdFileHandler {
 
         //add total user on device
         configString.append("uno:");
-        configString.append(getUserCount());
+        configString.append(getUserCount);
         configString.append("||");
 
         // add count of content of device
         configString.append("cno:");
-        configString.append(getLocalContentCount());
+        configString.append(getLocalContentCount);
         configString.append("||");
 
         // add Android OS version
@@ -207,26 +198,6 @@ public class SunbirdFileHandler {
         configString.append(versionHistory);
 
         return configString.toString();
-    }
-
-    public static GenieService getGenieSdkInstance() {
-        return GenieService.getService();
-    }
-
-    private static int getUserCount() {
-        GenieResponse<List<Profile>> response = getGenieSdkInstance().getUserService().getAllUserProfile();
-        List<Profile> mUserList = response.getResult();
-        return mUserList == null ? 0 : mUserList.size();
-    }
-
-    private static int getLocalContentCount() {
-        ContentFilterCriteria.Builder contentFilterCriteria = new ContentFilterCriteria.Builder();
-        contentFilterCriteria.contentTypes(new String[]{"Game", "Story", "Worksheet", "Collection", "TextBook"})
-                .withContentAccess();
-        GenieResponse<List<Content>> genieResponse = getGenieSdkInstance().getContentService()
-                .getAllLocalContent(contentFilterCriteria.build());
-        List<Content> contentList = genieResponse.getResult();
-        return contentList == null ? 0 : contentList.size();
     }
 
     private static String encodeToBase64Uri(byte[] data) {
