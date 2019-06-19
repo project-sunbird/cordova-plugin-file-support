@@ -3,18 +3,15 @@ package org.sunbird.support;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
+import org.sunbird.config.BuildConfigUtil;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
-import org.ekstep.genieservices.utils.BuildConfigUtil;
+// import org.ekstep.genieservices.utils.BuildConfigUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.sunbird.SunbirdApplication;
-
 import java.io.IOException;
 
 /**
@@ -37,48 +34,48 @@ public class SunbirdSupport extends CordovaPlugin {
         if (args.get(0).equals("makeEntryInSunbirdSupportFile")) {
             this.callbackContext = callbackContext;
             String filePath = null;
-            final Gson gson = new GsonBuilder().create();
             try {
                 final String packageName = this.cordova.getActivity().getPackageName();
                 PackageInfo packageInfo = this.cordova.getActivity().getPackageManager().getPackageInfo(packageName, 0);
                 final String versionName = packageInfo.versionName;
-                final String appFlavor = BuildConfigUtil.getBuildConfigValue(SunbirdApplication.PACKAGE_NAME, "FLAVOR");
+                final String appFlavor = BuildConfigUtil.getBuildConfigValue("org.sunbird.app", "FLAVOR");
                 String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
                 filePath = SunbirdFileHandler.makeEntryInSunbirdSupportFile(packageName, versionName, appName,
                         appFlavor);
-                callbackContext.success(gson.toJson(filePath));
+                callbackContext.success(filePath);
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
-                callbackContext.error(gson.toJson(filePath));
+                callbackContext.error(filePath);
             } catch (IOException e) {
                 e.printStackTrace();
-                callbackContext.error(gson.toJson(filePath));
+                callbackContext.error(filePath);
             }
         }
         if (args.get(0).equals("shareSunbirdConfigurations")) {
+            String getUserCount = args.optString(1,"getUserCount");
+            String getLocalContentCount = args.optString(2,"getLocalContentCount");
             this.callbackContext = callbackContext;
             String filePath = null;
-            final Gson gson = new GsonBuilder().create();
             try {
                 final String packageName = this.cordova.getActivity().getPackageName();
                 PackageInfo packageInfo = this.cordova.getActivity().getPackageManager().getPackageInfo(packageName, 0);
                 final String versionName = packageInfo.versionName;
-                final String appFlavor = BuildConfigUtil.getBuildConfigValue(SunbirdApplication.PACKAGE_NAME, "FLAVOR");
+                final String appFlavor = BuildConfigUtil.getBuildConfigValue("org.sunbird.app", "FLAVOR");
                 String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
                 filePath = SunbirdFileHandler.shareSunbirdConfigurations(packageName, versionName, appName, appFlavor,
-                        cordova.getContext());
-                callbackContext.success(gson.toJson(filePath));
+                        cordova.getContext(), getUserCount, getLocalContentCount);
+                callbackContext.success(filePath);
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
-                callbackContext.error(gson.toJson(filePath));
+                callbackContext.error(filePath);
             } catch (IOException e) {
                 e.printStackTrace();
-                callbackContext.error(gson.toJson(filePath));
+                callbackContext.error(filePath);
             }
         }
         if (args.get(0).equals("removeFile")) {
             this.callbackContext = callbackContext;
-            final String appFlavor = BuildConfigUtil.getBuildConfigValue(SunbirdApplication.PACKAGE_NAME, "FLAVOR");
+            final String appFlavor = BuildConfigUtil.getBuildConfigValue("org.sunbird.app", "FLAVOR");
             String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
             SunbirdFileHandler.removeFile(appName, appFlavor);
         }
