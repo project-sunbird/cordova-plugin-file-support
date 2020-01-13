@@ -3,6 +3,7 @@ package org.sunbird.support;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.hardware.Camera;
@@ -14,12 +15,14 @@ import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
+import android.webkit.WebView;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -319,6 +322,25 @@ public class DeviceSpec {
         }
 
         return sb.toString().replace(System.getProperty("line.separator"), " ").replace("Processor	:", "");
+    }
+
+    public static String getCurrentWebViewVersionName(Context context) {
+        PackageInfo pInfo = null;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                pInfo = WebView.getCurrentWebViewPackage();
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Class webViewFactory = Class.forName("android.webkit.WebViewFactory");
+                Method method = webViewFactory.getMethod("getLoadedPackageInfo");
+                pInfo = (PackageInfo) method.invoke(null);
+            } else {
+                PackageManager packageManager = context.getPackageManager();
+                pInfo = packageManager.getPackageInfo("com.google.android.webview", 0);
+            }
+            return pInfo.versionName;
+        } catch (Exception e) {
+            return "";
+        }
     }
     
 }

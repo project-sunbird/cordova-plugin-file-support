@@ -153,6 +153,11 @@ public class SunbirdFileHandler {
         configString.append(DeviceSpec.getOSVersion());
         configString.append("||");
 
+         // add Webview version
+         configString.append("wv:");
+         configString.append(DeviceSpec.getCurrentWebViewVersionName(context));
+         configString.append("||");
+
         // add Screen Resolution
         configString.append("res:");
         configString.append(DeviceSpec.getScreenWidth(context) + "x" + DeviceSpec.getScreenHeight(context));
