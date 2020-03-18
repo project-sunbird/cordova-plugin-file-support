@@ -247,6 +247,9 @@ public class SunbirdFileHandler {
         if (!directory.isDirectory()) {
             directory.mkdir();
         }
+        if (directory == null) {
+            return directory;
+        }
         return directory;
     }
 
