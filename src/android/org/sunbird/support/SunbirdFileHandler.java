@@ -243,12 +243,13 @@ public class SunbirdFileHandler {
     }
 
     public static File getRequiredDirectory(Context context, String directoryName) {
-        File directory = new File(context.getExternalFilesDir(null).getAbsolutePath() + '/' + directoryName);
-        if (!directory.isDirectory()) {
-            directory.mkdir();
-        }
-        if (directory == null) {
-            return directory;
+        File file = context.getExternalFilesDir(null);
+        File directory = null;
+        if (file!= null) {
+            directory = new File(context.getExternalFilesDir(null).getAbsolutePath() + '/' + directoryName);
+            if (!directory.isDirectory()) {
+                directory.mkdir();
+            }
         }
         return directory;
     }
