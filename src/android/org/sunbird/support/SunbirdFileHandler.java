@@ -3,7 +3,6 @@ package org.sunbird.support;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.os.Environment;
 import android.provider.Settings;
 
 import java.io.BufferedReader;
@@ -30,9 +29,9 @@ public class SunbirdFileHandler {
     private static final String DIRECTORY_NAME_SEPERATOR = "-";
     private static final String SEPERATOR = "~";
 
-    public static String makeEntryInSunbirdSupportFile(String packageName, String versionName, String appName,
+    public static String makeEntryInSunbirdSupportFile(String packageName, Context context, String versionName, String appName,
                                                        String appFlavor) throws IOException {
-        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(),
+        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(context,
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
         String filePath = supportDirectory + "/" + appName + DIRECTORY_NAME_SEPERATOR + appFlavor + SUPPORT_FILE;
         // for the first time when file does not exists
@@ -71,8 +70,7 @@ public class SunbirdFileHandler {
 
     public static String shareSunbirdConfigurations(String packageName, String versionName, String appName,
                                                     String appFlavor, Context context, String getUserCount, String getLocalContentCount) throws IOException {
-        File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(
-                Environment.getExternalStorageDirectory(),
+        File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(context,
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
         String filePath = sunbirdSupportDirectory + "/" + "Details_" + getDeviceID(context) + "_" + System.currentTimeMillis() + CONFIG_FILE;
 
@@ -192,8 +190,7 @@ public class SunbirdFileHandler {
         configString.append(checksum);
         configString.append("||");
 
-        File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(
-                Environment.getExternalStorageDirectory(),
+        File sunbirdSupportDirectory = SunbirdFileHandler.getRequiredDirectory(context,
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor +
                         DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
         String fileVersion = sunbirdSupportDirectory + "/" + appName + DIRECTORY_NAME_SEPERATOR + appFlavor
@@ -245,11 +242,14 @@ public class SunbirdFileHandler {
         return string == null || string.length() == 0;
     }
 
-    public static File getRequiredDirectory(File externalFilesDir, String directoryName) {
-        File directory = new File(externalFilesDir.getPath() + "/" + directoryName);
-
-        if (!directory.isDirectory()) {
-            directory.mkdirs();
+    public static File getRequiredDirectory(Context context, String directoryName) {
+        File file = context.getExternalFilesDir(null);
+        File directory = null;
+        if (file!= null) {
+            directory = new File(context.getExternalFilesDir(null).getAbsolutePath() + '/' + directoryName);
+            if (!directory.isDirectory()) {
+                directory.mkdir();
+            }
         }
         return directory;
     }
@@ -332,16 +332,14 @@ public class SunbirdFileHandler {
             fileInputStream.close();
 
             bufferedReader.close();
-        } catch (FileNotFoundException ex) {
-            System.out.print(ex.getMessage());
         } catch (IOException ex) {
             System.out.print(ex.getMessage());
         }
         return lastLine;
     }
 
-    protected static void removeFile(String appName, String appFlavor) {
-        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(Environment.getExternalStorageDirectory(),
+    protected static void removeFile(Context context, String appName, String appFlavor) {
+        File supportDirectory = SunbirdFileHandler.getRequiredDirectory(context,
                 appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY);
         for (File fileToDelete : supportDirectory.listFiles()) {
             if (fileToDelete.getName().startsWith("Details_")) {
