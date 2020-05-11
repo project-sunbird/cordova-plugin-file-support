@@ -9,7 +9,6 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
-// import org.ekstep.genieservices.utils.BuildConfigUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
 import java.io.IOException;
@@ -40,13 +39,10 @@ public class SunbirdSupport extends CordovaPlugin {
                 final String versionName = packageInfo.versionName;
                 final String appFlavor = BuildConfigUtil.getBuildConfigValue("org.sunbird.app", "FLAVOR");
                 String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
-                filePath = SunbirdFileHandler.makeEntryInSunbirdSupportFile(packageName, versionName, appName,
+                filePath = SunbirdFileHandler.makeEntryInSunbirdSupportFile(packageName, cordova.getActivity(), versionName, appName,
                         appFlavor);
                 callbackContext.success(filePath);
-            } catch (PackageManager.NameNotFoundException e) {
-                e.printStackTrace();
-                callbackContext.error(filePath);
-            } catch (IOException e) {
+            } catch (PackageManager.NameNotFoundException | IOException e) {
                 e.printStackTrace();
                 callbackContext.error(filePath);
             }
@@ -65,10 +61,7 @@ public class SunbirdSupport extends CordovaPlugin {
                 filePath = SunbirdFileHandler.shareSunbirdConfigurations(packageName, versionName, appName, appFlavor,
                         cordova.getContext(), getUserCount, getLocalContentCount);
                 callbackContext.success(filePath);
-            } catch (PackageManager.NameNotFoundException e) {
-                e.printStackTrace();
-                callbackContext.error(filePath);
-            } catch (IOException e) {
+            } catch (PackageManager.NameNotFoundException | IOException e) {
                 e.printStackTrace();
                 callbackContext.error(filePath);
             }
@@ -77,7 +70,7 @@ public class SunbirdSupport extends CordovaPlugin {
             this.callbackContext = callbackContext;
             final String appFlavor = BuildConfigUtil.getBuildConfigValue("org.sunbird.app", "FLAVOR");
             String appName = cordova.getActivity().getString(getIdOfResource(cordova, "_app_name", "string"));
-            SunbirdFileHandler.removeFile(appName, appFlavor);
+            SunbirdFileHandler.removeFile(cordova.getActivity(), appName, appFlavor);
         }
         return true;
     }
