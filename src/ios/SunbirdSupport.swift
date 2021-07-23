@@ -13,6 +13,8 @@ let SEPERATOR: String = "~"
     private var bundleInfoDictionary: [String: Any]?
     
     override func pluginInitialize() {
+        print(DIRECTORY_NAME_SEPERATOR)
+        print(SUPPORT_FILE)
         if let bundleInfoDictionary = Bundle.main.infoDictionary {
             self.bundleInfoDictionary = bundleInfoDictionary
         }
@@ -41,7 +43,7 @@ let SEPERATOR: String = "~"
     func makeEntryInSunbirdSupportFile(_ command: CDVInvokedUrlCommand) {
         var pluginResult: CDVPluginResult = CDVPluginResult.init(status: CDVCommandStatus_ERROR)
         if let bundleInfoDictionary = self.bundleInfoDictionary {
-            if let _ = Bundle.main.bundleIdentifier, let appName = bundleInfoDictionary["CFBundleName"] as? String, let appFlavour = bundleInfoDictionary["BUILD_TYPE"] as? String, let appVersion = bundleInfoDictionary["CFBundleShortVersionString"] as? String {
+            if let _ = Bundle.main.bundleIdentifier, let appName = bundleInfoDictionary["CFBundleName"] as? String, let appFlavour = bundleInfoDictionary["FLAVOR"] as? String, let appVersion = bundleInfoDictionary["CFBundleShortVersionString"] as? String {
                 do {
                     let fileManager = FileManager.default
                     let applicationDir = try fileManager.url(for: .applicationDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
@@ -54,7 +56,7 @@ let SEPERATOR: String = "~"
                     }
                     isDirectory = false
                     let supportFilePath = supportDir.appendingPathComponent(appName + DIRECTORY_NAME_SEPERATOR + appFlavour + SUPPORT_FILE)
-                    let currentTimeInMilliseconds = String(Date().timeIntervalSince1970 * 1000)
+                    let currentTimeInMilliseconds = String(Int64(Date().timeIntervalSince1970.rounded() * 1000))
                     var entryToFile = appVersion + SEPERATOR + currentTimeInMilliseconds +  SEPERATOR + "1"
                     if self.checkIfPathExists(supportFilePath.path, &isDirectory) {
                         let fileContents = try self.readFromFile(supportFilePath)
@@ -94,10 +96,10 @@ let SEPERATOR: String = "~"
         var pluginResult: CDVPluginResult = CDVPluginResult.init(status: CDVCommandStatus_ERROR)
         let fileManager = FileManager.default
         if let bundleInfoDictionary = self.bundleInfoDictionary {
-            if let appName = bundleInfoDictionary["CFBundleName"] as? String, let buildType = bundleInfoDictionary["BUILD_TYPE"] as? String {
+            if let appName = bundleInfoDictionary["CFBundleName"] as? String, let appFlavor = bundleInfoDictionary["FLAVOR"] as? String {
                 do {
                     let applicationDir = try fileManager.url(for: .applicationDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-                    let pathComponent = appName + DIRECTORY_NAME_SEPERATOR + buildType + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY
+                    let pathComponent = appName + DIRECTORY_NAME_SEPERATOR + appFlavor + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY
                     let supportFilesDirectoryPath =  applicationDir.appendingPathComponent(pathComponent, isDirectory: true)
                     let fileURLs = try fileManager.contentsOfDirectory(at: supportFilesDirectoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
                     for url in fileURLs {
