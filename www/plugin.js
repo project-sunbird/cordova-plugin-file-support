@@ -4,13 +4,13 @@ var PLUGIN_NAME = 'supportfile';
 
 var supportfile = {
   makeEntryInSunbirdSupportFile: function (success, error) {
-    exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["makeEntryInSunbirdSupportFile"]);
+    exec(success, error, PLUGIN_NAME, "makeEntryInSunbirdSupportFile", ["makeEntryInSunbirdSupportFile"]);
   },
   shareSunbirdConfigurations: function (getUserCount, getLocalContentCount, success, error) {
-      exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["shareSunbirdConfigurations", getUserCount, getLocalContentCount]);
+      exec(success, error, PLUGIN_NAME, "shareSunbirdConfigurations", ["shareSunbirdConfigurations", getUserCount, getLocalContentCount]);
   },
   removeFile: function (success, error) {
-    exec(success, error, PLUGIN_NAME, PLUGIN_NAME, ["removeFile"]);
+    exec(success, error, PLUGIN_NAME, "removeFile", ["removeFile"]);
   },
 };
 
