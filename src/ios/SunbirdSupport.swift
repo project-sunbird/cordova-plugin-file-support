@@ -1,5 +1,5 @@
 import Foundation
-
+import CommonCrypto
 
 let SUPPORT_FILE: String = "_support.txt"
 let CONFIG_FILE: String = ".txt"
@@ -7,9 +7,118 @@ let SUPPORT_DIRECTORY: String = "support"
 let DIRECTORY_NAME_SEPERATOR: String = "-"
 let SEPERATOR: String = "~"
 
+enum CryptoAlgorithm {
+    case SHA256
+    var HMACAlgorithm: CCHmacAlgorithm {
+        var result: Int = 0
+        switch self {
+        case .SHA256:   result = kCCHmacAlgSHA256
+        }
+        return CCHmacAlgorithm(result)
+    }
+    
+    var digestLength: Int {
+        var result: Int32 = 0
+        switch self {
+        case .SHA256:   result = CC_SHA256_DIGEST_LENGTH
+        }
+        return Int(result)
+    }
+}
+
+extension String {
+    func hmac(algorithm: CryptoAlgorithm, key: String) -> String {
+        let str = self.cString(using: String.Encoding.utf8)
+        let strLen = Int(self.lengthOfBytes(using: String.Encoding.utf8))
+        let digestLen = algorithm.digestLength
+        let result = UnsafeMutablePointer<CUnsignedChar>.allocate(capacity: digestLen)
+        let keyStr = key.cString(using: String.Encoding.utf8)
+        let keyLen = Int(key.lengthOfBytes(using: String.Encoding.utf8))
+        CCHmac(algorithm.HMACAlgorithm, keyStr!, keyLen, str!, strLen, result)
+        let digest = stringFromResult(result: result, length: digestLen)
+        result.deallocate(capacity: digestLen)
+        return digest
+    }
+    
+    private func stringFromResult(result: UnsafeMutablePointer<CUnsignedChar>, length: Int) -> String {
+        let hash = NSMutableString()
+        for i in 0..<length {
+            hash.appendFormat("%02x", result[i])
+        }
+        return String(hash).lowercased()
+    }
+}
+
+class DeviceSpec {
+    static func getDeviceId() -> String {
+        return UIDevice.current.identifierForVendor?.uuidString ?? ""
+    }
+    
+    static func getDeviceModel() -> String {
+        return UIDevice.current.model
+    }
+    
+    static func getDeviceMaker() -> String {
+        return UIDevice.current.name
+    }
+    
+    static func getDeviceOSVersion() -> String {
+        return UIDevice.current.systemVersion
+    }
+    
+    static func getFileSize(for key: FileAttributeKey) -> String {
+        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
+        guard
+            let lastPath = paths.last,
+            let attributeDictionary = try? FileManager.default.attributesOfFileSystem(forPath: lastPath) else { return "0" }
+        
+        if let size = attributeDictionary[key] as? NSNumber {
+            return String(size.int64Value)
+        } else {
+            return "0"
+        }
+    }
+    
+    static func getScreenResolution() -> String {
+        let screen = UIScreen.main
+        let width = screen.bounds.size.width
+        let height = screen.bounds.size.height
+        return width.description + "x" + height.description
+    }
+    
+    static func getDeviceDataString(_ configDictionary: [String: String]) -> String {
+        let userCount = configDictionary["userCount"] ?? "0"
+        let localContentCount = configDictionary["localContentCount"] ?? "0"
+        let supportFileVersionHistory = configDictionary["supportFileVersionHistory"] ?? ""
+        let deviceId = self.getDeviceId()
+        let deviceData: [String: String] = [
+            "did:": deviceId,
+            "mdl:": self.getDeviceModel(),
+            "mak:": self.getDeviceMaker(),
+            "cwv:": "",
+            "uno:": userCount,
+            "cno:": localContentCount,
+            "dos:": self.getDeviceOSVersion(),
+            "wv:": "",
+            "res:": self.getScreenResolution(),
+            "dpi:": "",
+            "tsp:": self.getFileSize(for: .systemSize),
+            "fsp:": self.getFileSize(for: .systemFreeSize),
+            "ts:": String(Int64(Date().timeIntervalSince1970.rounded() * 1000))
+        ]
+        
+        var configString =  deviceData.reduce("", { (accumulator: String, keyValue: (String, String)) -> String in
+            return accumulator + "\(keyValue.0)\(keyValue.1)||"
+        })
+        
+        let checkSum = configString.hmac(algorithm: .SHA256, key: deviceId)
+        configString = configString + "csm:\(checkSum)||sv:\(supportFileVersionHistory)"
+        return configString
+    }
+}
+
 @objc(SunbirdSupport) class SunbirdSupport : CDVPlugin {
     
-
     private var bundleInfoDictionary: [String: Any]?
     
     override func pluginInitialize() {
@@ -19,7 +128,7 @@ let SEPERATOR: String = "~"
             self.bundleInfoDictionary = bundleInfoDictionary
         }
     }
-        
+    
     private func checkIfPathExists(_ filePath: String, _ isDir: UnsafeMutablePointer<ObjCBool>) -> Bool {
         let fileManager = FileManager.default
         return fileManager.fileExists(atPath: filePath, isDirectory: isDir)
@@ -39,25 +148,33 @@ let SEPERATOR: String = "~"
         try text.write(to: fileURL, atomically: false, encoding: .utf8)
     }
     
+    private func createSupportDirectory(_ supportDirectoryPath: String) throws -> URL {
+        do {
+            let fileManager = FileManager.default
+            let applicationDir = try fileManager.url(for: .applicationDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+            let supportDir = applicationDir.appendingPathComponent(supportDirectoryPath)
+            var isDirectory: ObjCBool = true
+            if !self.checkIfPathExists(supportDir.path, &isDirectory) {
+                try fileManager.createDirectory(atPath: supportDir.path,withIntermediateDirectories: true, attributes: nil)
+            }
+            return supportDir
+        } catch let error {
+            throw error
+        }
+    }
+    
     @objc
     func makeEntryInSunbirdSupportFile(_ command: CDVInvokedUrlCommand) {
         var pluginResult: CDVPluginResult = CDVPluginResult.init(status: CDVCommandStatus_ERROR)
         if let bundleInfoDictionary = self.bundleInfoDictionary {
-            if let _ = Bundle.main.bundleIdentifier, let appName = bundleInfoDictionary["CFBundleName"] as? String, let appFlavour = bundleInfoDictionary["FLAVOR"] as? String, let appVersion = bundleInfoDictionary["CFBundleShortVersionString"] as? String {
+            if let appName = bundleInfoDictionary["CFBundleName"] as? String, let appFlavour = bundleInfoDictionary["FLAVOR"] as? String, let appVersion = bundleInfoDictionary["CFBundleShortVersionString"] as? String {
                 do {
-                    let fileManager = FileManager.default
-                    let applicationDir = try fileManager.url(for: .applicationDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
                     let pathComponent = appName + DIRECTORY_NAME_SEPERATOR + appFlavour + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY
-                    let supportDir = applicationDir.appendingPathComponent(pathComponent)
-                    var isDirectory: ObjCBool = true
-                    if !self.checkIfPathExists(supportDir.path, &isDirectory) {
-                        try fileManager.createDirectory(atPath: supportDir.path,
-                                                        withIntermediateDirectories: true, attributes: nil)
-                    }
-                    isDirectory = false
+                    let supportDir = try self.createSupportDirectory(pathComponent)
                     let supportFilePath = supportDir.appendingPathComponent(appName + DIRECTORY_NAME_SEPERATOR + appFlavour + SUPPORT_FILE)
                     let currentTimeInMilliseconds = String(Int64(Date().timeIntervalSince1970.rounded() * 1000))
                     var entryToFile = appVersion + SEPERATOR + currentTimeInMilliseconds +  SEPERATOR + "1"
+                    var isDirectory: ObjCBool = false
                     if self.checkIfPathExists(supportFilePath.path, &isDirectory) {
                         let fileContents = try self.readFromFile(supportFilePath)
                         var lines = fileContents.split(separator:"\n")
@@ -73,6 +190,7 @@ let SEPERATOR: String = "~"
                         }
                         try self.writeToFile(supportFilePath, entryToFile)
                     } else {
+                        let fileManager = FileManager.default
                         fileManager.createFile(atPath: supportFilePath.path, contents: entryToFile.data(using: .utf8), attributes: [:])
                     }
                     pluginResult = CDVPluginResult.init(status: CDVCommandStatus_OK, messageAs: supportFilePath.path)
@@ -87,7 +205,35 @@ let SEPERATOR: String = "~"
     @objc
     func shareSunbirdConfigurations(_ command: CDVInvokedUrlCommand) {
         var pluginResult: CDVPluginResult = CDVPluginResult.init(status: CDVCommandStatus_ERROR)
-        pluginResult = CDVPluginResult.init(status: CDVCommandStatus_OK, messageAs: [])
+        let usersCount = command.arguments.indices.contains(1) ? command.arguments[1] as! NSNumber : 0
+        let localContentCount = command.arguments.indices.contains(2) ? command.arguments[2] as! NSNumber: 0
+        if let bundleInfoDictionary = self.bundleInfoDictionary {
+            if let appName = bundleInfoDictionary["CFBundleName"] as? String, let appFlavour = bundleInfoDictionary["FLAVOR"] as? String, let appVersion = bundleInfoDictionary["CFBundleShortVersionString"] as? String {
+                do {
+                    let pathComponent = appName + DIRECTORY_NAME_SEPERATOR + appFlavour + DIRECTORY_NAME_SEPERATOR + SUPPORT_DIRECTORY
+                    let supportDir = try self.createSupportDirectory(pathComponent)
+                    let currentTimeInMilliseconds = String(Int64(Date().timeIntervalSince1970.rounded() * 1000))
+                    let deviceId = DeviceSpec.getDeviceId()
+                    let configFilePath = supportDir.appendingPathComponent("Details_" + deviceId + "_" + currentTimeInMilliseconds + CONFIG_FILE)
+                    let supportFilePath = supportDir.appendingPathComponent(appName + DIRECTORY_NAME_SEPERATOR + appFlavour + SUPPORT_FILE)
+                    var supportFileVersionHistory = ""
+                    var isDirectory: ObjCBool = false
+                    if self.checkIfPathExists(supportFilePath.path, &isDirectory) {
+                        let fileContents = try self.readFromFile(supportFilePath)
+                        let lines = fileContents.split(separator:"\n")
+                        supportFileVersionHistory = lines.joined(separator: ",")
+                    }
+                    let input: [String: String] = ["userCount": usersCount.stringValue, "localContentCount": localContentCount.stringValue, "supportFileVersionHistory": supportFileVersionHistory]
+                    let firstEntry = appVersion + SEPERATOR + currentTimeInMilliseconds +  SEPERATOR + "1"
+                    let configString = DeviceSpec.getDeviceDataString(input)
+                    let sharedData = configString + "," + firstEntry
+                    FileManager.default.createFile(atPath: configFilePath.path, contents: sharedData.data(using: .utf8), attributes: [:])
+                    pluginResult = CDVPluginResult.init(status: CDVCommandStatus_OK, messageAs:configFilePath.path)
+                } catch let error {
+                    print("Error while sharing Sunbird Configuration \(error)")
+                }
+            }
+        }
         self.commandDelegate.send(pluginResult, callbackId: command.callbackId)
     }
     
