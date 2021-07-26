@@ -47,6 +47,15 @@ extension String {
         }
         return String(hash).lowercased()
     }
+    
+    func convertToBase64URL() -> String {
+        let inputString = self
+        let utf8str = inputString.data(using: .utf8)
+        if let base64Encoded = utf8str?.base64EncodedString(options: Data.Base64EncodingOptions(rawValue: 0)) {
+            return base64Encoded
+        }
+        return inputString
+    }
 }
 
 class DeviceSpec {
@@ -112,7 +121,8 @@ class DeviceSpec {
         })
         
         let checkSum = configString.hmac(algorithm: .SHA256, key: deviceId)
-        configString = configString + "csm:\(checkSum)||sv:\(supportFileVersionHistory)"
+        let base64EncodedCheckSum = checkSum.convertToBase64URL()
+        configString = configString + "csm:\(base64EncodedCheckSum)||sv:\(supportFileVersionHistory)"
         return configString
     }
 }
@@ -160,6 +170,18 @@ class DeviceSpec {
             return supportDir
         } catch let error {
             throw error
+        }
+    }
+    
+    @objc
+    func supportfile(_ command: CDVInvokedUrlCommand) {
+        let functionNameToInvoke = command.arguments[0] as! String
+        if functionNameToInvoke == "makeEntryInSunbirdSupportFile" {
+            self.makeEntryInSunbirdSupportFile(command)
+        } else if functionNameToInvoke == "shareSunbirdConfigurations" {
+            self.shareSunbirdConfigurations(command)
+        } else if functionNameToInvoke == "removeFile" {
+            self.removeFile(command)
         }
     }
     
